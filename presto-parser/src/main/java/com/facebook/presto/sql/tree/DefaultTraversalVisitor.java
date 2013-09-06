@@ -350,6 +350,12 @@ public abstract class DefaultTraversalVisitor<R, C>
     }
 
     @Override
+    protected R visitSampledRelation(SampledRelation node, C context)
+    {
+        return process(node.getRelation(), context);
+    }
+
+    @Override
     protected R visitJoin(Join node, C context)
     {
         process(node.getLeft(), context);

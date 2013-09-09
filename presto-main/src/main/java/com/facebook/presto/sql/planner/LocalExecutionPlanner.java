@@ -24,6 +24,7 @@ import com.facebook.presto.operator.OperatorStats;
 import com.facebook.presto.operator.OutputProducingOperator;
 import com.facebook.presto.operator.ProjectionFunction;
 import com.facebook.presto.operator.ProjectionFunctions;
+import com.facebook.presto.operator.SamplingOperator;
 import com.facebook.presto.operator.SourceHashSupplier;
 import com.facebook.presto.operator.SourceOperator;
 import com.facebook.presto.operator.SourceSetSupplier;
@@ -33,6 +34,9 @@ import com.facebook.presto.operator.TopNOperator;
 import com.facebook.presto.operator.window.WindowFunction;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.split.DataStreamProvider;
+import com.facebook.presto.split.ExpressionUtil;
+import com.facebook.presto.sql.analyzer.SemanticErrorCode;
+import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.analyzer.Session;
 import com.facebook.presto.sql.analyzer.Type;
 import com.facebook.presto.sql.gen.ExpressionCompiler;
@@ -47,6 +51,7 @@ import com.facebook.presto.sql.planner.plan.PlanNode;
 import com.facebook.presto.sql.planner.plan.PlanNodeId;
 import com.facebook.presto.sql.planner.plan.PlanVisitor;
 import com.facebook.presto.sql.planner.plan.ProjectNode;
+import com.facebook.presto.sql.planner.plan.SampleNode;
 import com.facebook.presto.sql.planner.plan.SemiJoinNode;
 import com.facebook.presto.sql.planner.plan.SinkNode;
 import com.facebook.presto.sql.planner.plan.SortNode;
@@ -450,6 +455,23 @@ public class LocalExecutionPlanner
             PhysicalOperation source = node.getSource().accept(this, context);
 
             return new PhysicalOperation(new LimitOperator(source.getOperator(), node.getCount()), source.getLayout());
+        }
+
+        @Override
+        public PhysicalOperation visitSample(SampleNode node, LocalExecutionPlanContext context)
+        {
+            PhysicalOperation source = node.getSource().accept(this, context);
+            IdentityProjectionInfo mappings = computeIdentityMapping(node.getOutputSymbols(), source.getLayout(), context.getTypes());
+            ExpressionInterpreter samplePercentageEvaluator = ExpressionInterpreter.expressionInterpreter(new TupleInputResolver(), metadata, context.getSession());
+            Object samplePercentageObject = samplePercentageEvaluator.process(node.getSamplePercentage(), null);
+
+            if (!(samplePercentageObject instanceof Number))
+                throw new SemanticException(SemanticErrorCode.NON_NUMERIC_SAMPLE_PERCENTAGE, node.getSamplePercentage(), "Sample Percentage should evaluate to a numeric expression");
+
+            double samplePercentageValue = ((Number) samplePercentageObject).doubleValue();
+            Preconditions.checkArgument(samplePercentageValue >= 0.0 && samplePercentageValue <= 100.0, "Sample Percentage must be between 0 and 100");
+            Operator operator = new SamplingOperator(source.getOperator(), samplePercentageValue, mappings.getProjections());
+            return new PhysicalOperation(operator, mappings.getOutputLayout());
         }
 
         @Override

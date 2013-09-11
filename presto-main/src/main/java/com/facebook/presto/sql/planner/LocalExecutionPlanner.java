@@ -34,6 +34,9 @@ import com.facebook.presto.operator.TopNOperator;
 import com.facebook.presto.operator.window.WindowFunction;
 import com.facebook.presto.spi.ColumnHandle;
 import com.facebook.presto.split.DataStreamProvider;
+import com.facebook.presto.split.ExpressionUtil;
+import com.facebook.presto.sql.analyzer.SemanticErrorCode;
+import com.facebook.presto.sql.analyzer.SemanticException;
 import com.facebook.presto.sql.analyzer.Session;
 import com.facebook.presto.sql.analyzer.Type;
 import com.facebook.presto.sql.gen.ExpressionCompiler;
@@ -57,14 +60,7 @@ import com.facebook.presto.sql.planner.plan.TableWriterNode;
 import com.facebook.presto.sql.planner.plan.TopNNode;
 import com.facebook.presto.sql.planner.plan.UnionNode;
 import com.facebook.presto.sql.planner.plan.WindowNode;
-import com.facebook.presto.sql.tree.BooleanLiteral;
-import com.facebook.presto.sql.tree.Expression;
-import com.facebook.presto.sql.tree.ExpressionTreeRewriter;
-import com.facebook.presto.sql.tree.FunctionCall;
-import com.facebook.presto.sql.tree.Input;
-import com.facebook.presto.sql.tree.InputReference;
-import com.facebook.presto.sql.tree.QualifiedNameReference;
-import com.facebook.presto.sql.tree.SortItem;
+import com.facebook.presto.sql.tree.*;
 import com.facebook.presto.tuple.FieldOrderedTupleComparator;
 import com.facebook.presto.tuple.TupleInfo;
 import com.facebook.presto.tuple.TupleReadable;
@@ -459,7 +455,15 @@ public class LocalExecutionPlanner
         {
             PhysicalOperation source = node.getSource().accept(this, context);
             IdentityProjectionInfo mappings = computeIdentityMapping(node.getOutputSymbols(), source.getLayout(), context.getTypes());
-            Operator operator = new SamplingOperator(source.getOperator(), node.getSamplePercentage(), mappings.getProjections());
+            ExpressionInterpreter samplePercentageEvaluator = ExpressionInterpreter.expressionInterpreter(new TupleInputResolver(), metadata, context.getSession());
+            Object samplePercentageObject = samplePercentageEvaluator.process(node.getSamplePercentage(), null);
+
+            if (!(samplePercentageObject instanceof Number))
+                throw new SemanticException(SemanticErrorCode.NON_NUMERIC_SAMPLE_PERCENTAGE, node.getSamplePercentage(), "Sample Percentage should evaluate to a numeric expression");
+
+            double samplePercentageValue = ((Number) samplePercentageObject).doubleValue();
+
+            Operator operator = new SamplingOperator(source.getOperator(), samplePercentageValue, mappings.getProjections());
             return new PhysicalOperation(operator, mappings.getOutputLayout());
         }
 

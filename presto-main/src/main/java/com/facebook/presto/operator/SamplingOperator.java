@@ -15,18 +15,18 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class SamplingOperator
         extends AbstractSamplingOperator {
-    private final double samplePercentage;
+    private final double samplePercentageValue;
     private final List<ProjectionFunction> projections;
 
-    public SamplingOperator(Operator source, double samplePercentage, ProjectionFunction... projections)
+    public SamplingOperator(Operator source, double samplePercentageValue, ProjectionFunction... projections)
     {
-        this(source, samplePercentage, ImmutableList.copyOf(projections));
+        this(source, samplePercentageValue, ImmutableList.copyOf(projections));
     }
 
-    public SamplingOperator(Operator source, double samplePercentage, List<ProjectionFunction> projections)
+    public SamplingOperator(Operator source, double samplePercentageValue, List<ProjectionFunction> projections)
     {
         super(toTupleInfos(projections), source);
-        this.samplePercentage = samplePercentage;
+        this.samplePercentageValue = samplePercentageValue;
         this.projections = ImmutableList.copyOf(projections);
     }
 
@@ -43,20 +43,20 @@ public class SamplingOperator
     @Override
     protected PageIterator iterator(PageIterator source, OperatorStats operatorStats)
     {
-        return new SamplingIterator(source, samplePercentage, projections, operatorStats);
+        return new SamplingIterator(source, samplePercentageValue, projections, operatorStats);
     }
 
     public static class SamplingIterator
             extends AbstractSamplingIterator {
-        private final double samplePercentage;
+        private final double samplePercentageValue;
         private final List<ProjectionFunction> projections;
         private final OperatorStats operatorStats;
         private long currentCompletedSize;
 
-        public SamplingIterator(PageIterator pageIterator, double samplePercentage, List<ProjectionFunction> projections, OperatorStats operatorStats)
+        public SamplingIterator(PageIterator pageIterator, double samplePercentageValue, List<ProjectionFunction> projections, OperatorStats operatorStats)
         {
             super(toTupleInfos(projections), pageIterator, operatorStats);
-            this.samplePercentage = samplePercentage;
+            this.samplePercentageValue = samplePercentageValue;
             this.projections = projections;
             this.operatorStats = operatorStats;
         }
@@ -78,7 +78,7 @@ public class SamplingOperator
                     checkState(cursor.advanceNextPosition());
                 }
 
-                if (Math.random() <= samplePercentage/100.0)
+                if (Math.random() <= samplePercentageValue/100.0)
                 {
                     pageBuilder.declarePosition();
                     for (int i = 0; i < projections.size(); i++)
@@ -107,7 +107,7 @@ public class SamplingOperator
                 {
                     break;
                 }
-                if (Math.random() <= samplePercentage/100.0)
+                if (Math.random() <= samplePercentageValue/100.0)
                 {
                     pageBuilder.declarePosition();
                     for (int i = 0; i < projections.size(); i++)

@@ -1,6 +1,7 @@
 package com.facebook.presto.sql.planner.plan;
 
 import com.facebook.presto.sql.planner.Symbol;
+import com.facebook.presto.sql.tree.Expression;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
@@ -13,15 +14,15 @@ import java.util.List;
 public class SampleNode
         extends PlanNode {
     private final PlanNode source;
-    private final double samplePercentage;
+    private final Expression samplePercentage;
 
     @JsonCreator
-    public SampleNode(@JsonProperty("id") PlanNodeId id, @JsonProperty("source") PlanNode source, @JsonProperty("samplePercentage") double samplePercentage)
+    public SampleNode(@JsonProperty("id") PlanNodeId id, @JsonProperty("source") PlanNode source, @JsonProperty("samplePercentage") Expression samplePercentage)
     {
         super(id);
 
         Preconditions.checkNotNull(source, "source is null");
-        Preconditions.checkArgument(samplePercentage >= 0.0 && samplePercentage <= 100.0, "sampling ratio must be between zero and one");
+        //Preconditions.checkArgument(samplePercentage >= 0.0 && samplePercentage <= 100.0, "sampling ratio must be between zero and one");
 
         this.source = source;
         this.samplePercentage = samplePercentage;
@@ -40,7 +41,7 @@ public class SampleNode
     }
 
     @JsonProperty("samplePercentage")
-    public double getSamplePercentage()
+    public Expression getSamplePercentage()
     {
         return samplePercentage;
     }

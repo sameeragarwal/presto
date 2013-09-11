@@ -122,7 +122,7 @@ class RelationPlanner
 
         TupleDescriptor outputDescriptor = analysis.getOutputDescriptor(node);
 
-        return new RelationPlan(new SampleNode(idAllocator.getNextId(), subPlan.getRoot(), Double.parseDouble(node.getSamplePercentage().toString())), outputDescriptor, subPlan.getOutputSymbols());
+        return new RelationPlan(new SampleNode(idAllocator.getNextId(), subPlan.getRoot(), node.getSamplePercentage()), outputDescriptor, subPlan.getOutputSymbols());
     }
 
     @Override

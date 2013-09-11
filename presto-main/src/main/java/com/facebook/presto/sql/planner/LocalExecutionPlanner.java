@@ -462,7 +462,7 @@ public class LocalExecutionPlanner
                 throw new SemanticException(SemanticErrorCode.NON_NUMERIC_SAMPLE_PERCENTAGE, node.getSamplePercentage(), "Sample Percentage should evaluate to a numeric expression");
 
             double samplePercentageValue = ((Number) samplePercentageObject).doubleValue();
-
+            Preconditions.checkArgument(samplePercentageValue >= 0.0 && samplePercentageValue <= 100.0, "Sample Percentage must be between 0 and 100");
             Operator operator = new SamplingOperator(source.getOperator(), samplePercentageValue, mappings.getProjections());
             return new PhysicalOperation(operator, mappings.getOutputLayout());
         }

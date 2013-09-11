@@ -22,8 +22,6 @@ public class SampleNode
         super(id);
 
         Preconditions.checkNotNull(source, "source is null");
-        //Preconditions.checkArgument(samplePercentage >= 0.0 && samplePercentage <= 100.0, "sampling ratio must be between zero and one");
-
         this.source = source;
         this.samplePercentage = samplePercentage;
     }

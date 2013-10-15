@@ -168,6 +168,8 @@ public class DistributedExecutionPlanner
             switch (node.getSampleType()) {
                 case BERNOULLI:
                     return node.getSource().accept(this, materializedViewPartitionPredicate);
+                case POISSONIZED:
+                    return node.getSource().accept(this, materializedViewPartitionPredicate);
 
                 case SYSTEM: {
                     NodeSplits nodeSplits = node.getSource().accept(this, materializedViewPartitionPredicate);

@@ -19,6 +19,7 @@ import com.facebook.presto.block.Block;
 import com.facebook.presto.block.BlockCursor;
 import com.facebook.presto.tuple.TupleInfo;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.List;
@@ -157,6 +158,7 @@ public class SampleOperator
                     // todo: if the projection function increases the size of the data significantly, this could cause the servers to OOM
                     projections.get(i).project(cursors, pageBuilder.getBlockBuilder(i));
                 }
+                pageBuilder.getBlockBuilder(projections.size()).append(sampleRatio);
             }
         }
 

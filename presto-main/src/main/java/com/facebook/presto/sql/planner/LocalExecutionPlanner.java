@@ -470,9 +470,18 @@ public class LocalExecutionPlanner
 
             if (node.getSampleType() == SampleNode.Type.POISSONIZED) {
                 PhysicalOperation source = node.getSource().accept(this, context);
-                IdentityProjectionInfo mappings = computeIdentityMapping(node.getOutputSymbols(), source.getLayout(), context.getTypes());
+
+                IdentityProjectionInfo mappings = computeIdentityMapping(node.getSource().getOutputSymbols(), source.getLayout(), context.getTypes());
                 OperatorFactory operatorFactory = new SampleOperatorFactory(context.getNextOperatorId(), node.getSampleRatio(), mappings.getProjections());
-                return new PhysicalOperation(operatorFactory, source.getLayout(), source);
+
+                Input weightInput = new Input(mappings.getProjections().size(), 0);
+
+                Multimap<Symbol, Input> outputLayout = ImmutableMultimap.<Symbol, Input>builder()
+                        .putAll(source.getLayout())
+                        .put(node.getWeightOutput(), weightInput)
+                        .build();
+
+                return new PhysicalOperation(operatorFactory, outputLayout, source);
             }
 
             throw new UnsupportedOperationException("not yet implemented: " + node);

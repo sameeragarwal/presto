@@ -160,6 +160,7 @@ public final class SymbolExtractor
         public Void visitSample(SampleNode node, Void context)
         {
             node.getSource().accept(this, context);
+            builder.add(node.getWeightOutput());
 
             return null;
         }

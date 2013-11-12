@@ -136,10 +136,52 @@ class RelationPlanner
 
         TupleDescriptor outputDescriptor = analysis.getOutputDescriptor(node);
         double ratio = analysis.getSampleRatio(node);
+
+        PlanBuilder subPlanBuilder = initializePlanBuilder(subPlan);
+        TranslationMap translations = new TranslationMap(subPlanBuilder.getRelationPlan(), analysis);
+
+        // Carry over the translations from the source because we are appending the weight column
+        translations.copyMappingsFrom(subPlanBuilder.getTranslations());
+
+//        ImmutableMap.Builder<Symbol, Expression> projections = ImmutableMap.builder();
+
+        Symbol symbol = symbolAllocator.newSymbol("$weight", Type.DOUBLE);
+//        List<Symbol> outputs = ImmutableList.<Symbol>builder()
+//                .addAll(subPlan.getRoot().getOutputSymbols())
+//                .add(symbol)
+//                .build();
+//
+        // add an identity projection for underlying plan
+//        for (Symbol symbol : subPlan.getRoot().getOutputSymbols()) {
+
+//            Expression expression = new QualifiedNameReference(symbol.toQualifiedName());
+//            projections.put(symbol, expression);
+//        }
+
+//        ImmutableMap.Builder<Symbol, Expression> newTranslations = ImmutableMap.builder();
+        //Expression weights = new QualifiedNameReference(symbol.toQualifiedName());
+        //projections.put(symbol, translations.rewrite(weights));
+        //projections.put(symbol, weights);
+        //newTranslations.put(symbol, weights);
+        //Expression weights = new Ex
+//        projections.put(symbol, node.getSamplePercentage());
+        //newTranslations.put(symbol, node.getSamplePercentage());
+
+        // Now append the new translations into the TranslationMap
+        /*
+        for (Map.Entry<Symbol, Expression> entry : newTranslations.build().entrySet()) {
+            translations.put(entry.getValue(), entry.getKey());
+        }
+        */
+
+
+//        PlanBuilder subPlan2 = new PlanBuilder(translations, new ProjectNode(idAllocator.getNextId(), subPlan.getRoot(), projections.build()));
+
+        SampleNode sampleNode = new SampleNode(idAllocator.getNextId(), subPlan.getRoot(), ratio, SampleNode.Type.fromType(node.getType()), symbol);
         return new RelationPlan(
-                new SampleNode(idAllocator.getNextId(), subPlan.getRoot(), ratio, SampleNode.Type.fromType(node.getType())),
+                sampleNode,
                 outputDescriptor,
-                subPlan.getOutputSymbols());
+                sampleNode.getOutputSymbols());
     }
 
     @Override

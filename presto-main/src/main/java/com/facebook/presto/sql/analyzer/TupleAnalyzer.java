@@ -71,6 +71,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static com.facebook.presto.sql.analyzer.Analyzer.ExpressionAnalysis;
+import static com.facebook.presto.sql.analyzer.Field.newUnqualified;
 import static com.facebook.presto.sql.analyzer.Field.typeGetter;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.AMBIGUOUS_ATTRIBUTE;
 import static com.facebook.presto.sql.analyzer.SemanticErrorCode.DUPLICATE_RELATION;
@@ -229,10 +230,21 @@ class TupleAnalyzer
 
         TupleDescriptor descriptor = process(relation.getRelation(), context);
 
-        analysis.setOutputDescriptor(relation, descriptor);
+        ImmutableList.Builder<Field> builder = ImmutableList.builder();
+
+        for (int i = 0; i < descriptor.getFields().size(); i++) {
+            builder.add(descriptor.getFields().get(i));
+        }
+
+        // Adding an additional column to maintain per-row weights post sampling
+        builder.add(newUnqualified("$weight", Type.DOUBLE));
+
+        TupleDescriptor descriptorWithWeights = new TupleDescriptor(builder.build());
+
+        analysis.setOutputDescriptor(relation, descriptorWithWeights);
         analysis.setSampleRatio(relation, samplePercentageValue / 100);
 
-        return descriptor;
+        return descriptorWithWeights;
     }
 
     @Override

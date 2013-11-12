@@ -33,6 +33,7 @@ public class SampleNode
     private final PlanNode source;
     private final double sampleRatio;
     private final Type sampleType;
+    private final Symbol weightOutput;
 
     public enum Type
     {
@@ -60,13 +61,15 @@ public class SampleNode
             @JsonProperty("id") PlanNodeId id,
             @JsonProperty("source") PlanNode source,
             @JsonProperty("sampleRatio") double sampleRatio,
-            @JsonProperty("sampleType") Type sampleType)
+            @JsonProperty("sampleType") Type sampleType,
+            @JsonProperty("weightOutput") Symbol weightOutput)
     {
         super(id);
 
         checkArgument(sampleRatio >= 0.0, "sample ratio must be greater than or equal to 0");
         checkArgument((sampleRatio <= 1.0) || (sampleType == Type.POISSONIZED) , "sample ratio must be less than or equal to 1");
 
+        this.weightOutput = checkNotNull(weightOutput, "weightOutput is null");
         this.sampleType = checkNotNull(sampleType, "sample type is null");
         this.source = checkNotNull(source, "source is null");
         this.sampleRatio = checkNotNull(sampleRatio, "sample ratio is null");
@@ -96,10 +99,19 @@ public class SampleNode
         return sampleType;
     }
 
+    @JsonProperty
+    public Symbol getWeightOutput()
+    {
+        return weightOutput;
+    }
+
     @Override
     public List<Symbol> getOutputSymbols()
     {
-        return source.getOutputSymbols();
+        return ImmutableList.<Symbol>builder()
+                .addAll(source.getOutputSymbols())
+                .add(weightOutput)
+                .build();
     }
 
     @Override

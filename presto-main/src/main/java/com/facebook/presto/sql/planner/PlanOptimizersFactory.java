@@ -52,8 +52,9 @@ public class PlanOptimizersFactory
 
         ImmutableList.Builder<PlanOptimizer> builder = ImmutableList.builder();
 
-        builder.add(new ImplementSampleAsFilter(),
-                new SimplifyExpressions(metadata),
+        // Disabled ImplementSampleAsFilter() optimization to support per-row weights
+        builder.add(new SimplifyExpressions(metadata),
+                new PruneUnreferencedOutputs(),
                 new UnaliasSymbolReferences(),
                 new PruneRedundantProjections(),
                 new SetFlatteningOptimizer(),

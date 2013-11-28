@@ -468,11 +468,11 @@ public class LocalExecutionPlanner
                 return node.getSource().accept(this, context);
             }
 
-            if (node.getSampleType() == SampleNode.Type.POISSONIZED) {
+            if (node.getSampleType() == SampleNode.Type.POISSONIZED || node.getSampleType() == SampleNode.Type.BERNOULLI) {
                 PhysicalOperation source = node.getSource().accept(this, context);
 
                 IdentityProjectionInfo mappings = computeIdentityMapping(node.getSource().getOutputSymbols(), source.getLayout(), context.getTypes());
-                OperatorFactory operatorFactory = new SampleOperatorFactory(context.getNextOperatorId(), node.getSampleRatio(), mappings.getProjections());
+                OperatorFactory operatorFactory = new SampleOperatorFactory(context.getNextOperatorId(), node.getSampleRatio(), node.getSampleType(), mappings.getProjections());
 
                 Input weightInput = new Input(mappings.getProjections().size(), 0);
 

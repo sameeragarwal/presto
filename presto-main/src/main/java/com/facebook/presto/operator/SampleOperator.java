@@ -34,19 +34,43 @@ public class SampleOperator
     public static class SampleOperatorFactory
             implements OperatorFactory
     {
+
         private final int operatorId;
         private final double sampleRatio;
+        private final Type sampleType;
 
         private final List<ProjectionFunction> projections;
         private final List<TupleInfo> tupleInfos;
         private boolean closed;
 
+<<<<<<< HEAD
         public SampleOperatorFactory(int operatorId, double sampleRatio, List<ProjectionFunction> projections)
         {
             this.operatorId = operatorId;
             this.sampleRatio = sampleRatio;
             this.projections = ImmutableList.copyOf(checkNotNull(projections, "projections is null"));
             this.tupleInfos = toTupleInfos(projections);
+=======
+        protected enum Type
+        {
+            BERNOULLI,
+            POISSONIZED,
+            SYSTEM;
+        }
+
+        public SampleOperatorFactory(int operatorId, double sampleRatio, Type sampleType, ProjectionFunction... projections)
+        {
+            this(operatorId, sampleRatio, sampleType, ImmutableList.copyOf(checkNotNull(projections, "projections is null")));
+        }
+
+        public SampleOperatorFactory(int operatorId, double sampleRatio, Type sampleType, List<ProjectionFunction> projections)
+        {
+            this.operatorId = operatorId;
+            this.sampleRatio = sampleRatio;
+            this.sampleType = sampleType;
+            this.projections = ImmutableList.copyOf(projections);
+            this.tupleInfos = ImmutableList.copyOf(Iterables.concat(toTupleInfos(projections), ImmutableList.of(new TupleInfo(TupleInfo.Type.DOUBLE))));
+>>>>>>> temp
         }
 
         @Override
@@ -75,16 +99,27 @@ public class SampleOperator
     private final List<TupleInfo> tupleInfos;
     private final PageBuilder pageBuilder;
     private boolean finishing;
+    private SampleOperatorFactory.Type sampleType;
     private double sampleRatio;
     private final List<ProjectionFunction> projections;
 
+<<<<<<< HEAD
     public SampleOperator(OperatorContext operatorContext, double sampleRatio, List<ProjectionFunction> projections, List<TupleInfo> tupleInfos)
+=======
+    public SampleOperator(OperatorContext operatorContext, double sampleRatio, SampleOperatorFactory.Type sampleType, ProjectionFunction... projections)
+    {
+        this(operatorContext, sampleRatio, sampleType, ImmutableList.copyOf(checkNotNull(projections, "projections is null")));
+    }
+
+    public SampleOperator(OperatorContext operatorContext, double sampleRatio, SampleOperatorFactory.Type sampleType, List<ProjectionFunction> projections)
+>>>>>>> temp
     {
         //Note: Poissonized Samples can be larger than the original dataset if desired
         checkArgument(sampleRatio >= 0.0, "sample ratio must be at least zero");
 
         this.operatorContext = checkNotNull(operatorContext, "operatorContext is null");
         this.sampleRatio = sampleRatio;
+        this.sampleType = sampleType;
         this.projections = ImmutableList.copyOf(projections);
         this.tupleInfos = ImmutableList.copyOf(tupleInfos);
         this.pageBuilder = new PageBuilder(tupleInfos);
@@ -149,16 +184,18 @@ public class SampleOperator
                 checkState(cursor.advanceNextPosition());
             }
 
-            int repeats = Poisson.staticNextInt(sampleRatio);
+            if (sampleType == SampleOperatorFactory.Type.POISSONIZED) {
+                int repeats = Poisson.staticNextInt(sampleRatio);
 
-            for (int j = 0; j < repeats; j++) {
-                pageBuilder.declarePosition();
+                for (int j = 0; j < repeats; j++) {
+                    pageBuilder.declarePosition();
 
-                for (int i = 0; i < projections.size(); i++) {
-                    // todo: if the projection function increases the size of the data significantly, this could cause the servers to OOM
-                    projections.get(i).project(cursors, pageBuilder.getBlockBuilder(i));
+                    for (int i = 0; i < projections.size(); i++) {
+                        // todo: if the projection function increases the size of the data significantly, this could cause the servers to OOM
+                        projections.get(i).project(cursors, pageBuilder.getBlockBuilder(i));
+                    }
+                    pageBuilder.getBlockBuilder(projections.size()).append(sampleRatio);
                 }
-                pageBuilder.getBlockBuilder(projections.size()).append(sampleRatio);
             }
         }
 

@@ -17,6 +17,7 @@ import cern.jet.random.Poisson;
 
 import com.facebook.presto.block.Block;
 import com.facebook.presto.block.BlockCursor;
+import com.facebook.presto.sql.planner.plan.SampleNode;
 import com.facebook.presto.tuple.TupleInfo;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -32,64 +33,55 @@ public class SampleOperator
         implements Operator
 {
     public static class SampleOperatorFactory
-            implements OperatorFactory
-    {
+            implements OperatorFactory {
+
+        /*
+        protected enum Type {
+            BERNOULLI,
+            POISSONIZED,
+            SYSTEM
+        }
+        */
 
         private final int operatorId;
         private final double sampleRatio;
-        private final Type sampleType;
+        private final SampleNode.Type sampleType;
 
         private final List<ProjectionFunction> projections;
         private final List<TupleInfo> tupleInfos;
         private boolean closed;
 
-<<<<<<< HEAD
-        public SampleOperatorFactory(int operatorId, double sampleRatio, List<ProjectionFunction> projections)
-        {
+        /*
+        public SampleOperatorFactory(int operatorId, double sampleRatio, List<ProjectionFunction> projections) {
             this.operatorId = operatorId;
             this.sampleRatio = sampleRatio;
             this.projections = ImmutableList.copyOf(checkNotNull(projections, "projections is null"));
             this.tupleInfos = toTupleInfos(projections);
-=======
-        protected enum Type
-        {
-            BERNOULLI,
-            POISSONIZED,
-            SYSTEM;
         }
+        */
 
-        public SampleOperatorFactory(int operatorId, double sampleRatio, Type sampleType, ProjectionFunction... projections)
-        {
-            this(operatorId, sampleRatio, sampleType, ImmutableList.copyOf(checkNotNull(projections, "projections is null")));
-        }
-
-        public SampleOperatorFactory(int operatorId, double sampleRatio, Type sampleType, List<ProjectionFunction> projections)
-        {
+        public SampleOperatorFactory(int operatorId, double sampleRatio, SampleNode.Type sampleType, List<ProjectionFunction> projections) {
             this.operatorId = operatorId;
             this.sampleRatio = sampleRatio;
             this.sampleType = sampleType;
-            this.projections = ImmutableList.copyOf(projections);
+            this.projections = ImmutableList.copyOf(checkNotNull(projections, "projections is null"));
             this.tupleInfos = ImmutableList.copyOf(Iterables.concat(toTupleInfos(projections), ImmutableList.of(new TupleInfo(TupleInfo.Type.DOUBLE))));
->>>>>>> temp
         }
 
         @Override
-        public List<TupleInfo> getTupleInfos()
-        {
+        public List<TupleInfo> getTupleInfos() {
             return tupleInfos;
         }
 
         @Override
-        public Operator createOperator(DriverContext driverContext)
-        {
+        public Operator createOperator(DriverContext driverContext) {
             checkState(!closed, "Factory is already closed");
             OperatorContext operatorContext = driverContext.addOperatorContext(operatorId, SampleOperator.class.getSimpleName());
-            return new SampleOperator(operatorContext, sampleRatio, projections, tupleInfos);
+            return new SampleOperator(operatorContext, sampleRatio, sampleType, projections, tupleInfos);
         }
 
         @Override
-        public void close()
-        {
+        public void close() {
             closed = true;
         }
 
@@ -99,23 +91,17 @@ public class SampleOperator
     private final List<TupleInfo> tupleInfos;
     private final PageBuilder pageBuilder;
     private boolean finishing;
-    private SampleOperatorFactory.Type sampleType;
+    private SampleNode.Type sampleType;
     private double sampleRatio;
     private final List<ProjectionFunction> projections;
 
-<<<<<<< HEAD
-    public SampleOperator(OperatorContext operatorContext, double sampleRatio, List<ProjectionFunction> projections, List<TupleInfo> tupleInfos)
-=======
-    public SampleOperator(OperatorContext operatorContext, double sampleRatio, SampleOperatorFactory.Type sampleType, ProjectionFunction... projections)
+    public SampleOperator(OperatorContext operatorContext, double sampleRatio, SampleNode.Type sampleType, List<ProjectionFunction> projections, List<TupleInfo> tupleInfos)
     {
-        this(operatorContext, sampleRatio, sampleType, ImmutableList.copyOf(checkNotNull(projections, "projections is null")));
-    }
-
-    public SampleOperator(OperatorContext operatorContext, double sampleRatio, SampleOperatorFactory.Type sampleType, List<ProjectionFunction> projections)
->>>>>>> temp
-    {
-        //Note: Poissonized Samples can be larger than the original dataset if desired
         checkArgument(sampleRatio >= 0.0, "sample ratio must be at least zero");
+
+        if (sampleType != SampleNode.Type.POISSONIZED) {
+            checkArgument(sampleRatio <= 1.0, "sample ratio must be less than one");
+        }
 
         this.operatorContext = checkNotNull(operatorContext, "operatorContext is null");
         this.sampleRatio = sampleRatio;
@@ -184,7 +170,7 @@ public class SampleOperator
                 checkState(cursor.advanceNextPosition());
             }
 
-            if (sampleType == SampleOperatorFactory.Type.POISSONIZED) {
+            if (sampleType == SampleNode.Type.POISSONIZED) {
                 int repeats = Poisson.staticNextInt(sampleRatio);
 
                 for (int j = 0; j < repeats; j++) {

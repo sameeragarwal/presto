@@ -92,14 +92,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.*;
 import com.google.common.collect.ImmutableMap.Builder;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 import com.google.common.primitives.Ints;
 import io.airlift.log.Logger;
 import io.airlift.node.NodeInfo;
@@ -474,9 +468,17 @@ public class LocalExecutionPlanner
                 IdentityProjectionInfo mappings = computeIdentityMapping(node.getSource().getOutputSymbols(), source.getLayout(), context.getTypes());
                 OperatorFactory operatorFactory = new SampleOperatorFactory(context.getNextOperatorId(), node.getSampleRatio(), node.getSampleType(), mappings.getProjections());
 
-                Input weightInput = new Input(mappings.getProjections().size(), 0);
+                //Input weightInput = new Input(mappings.getProjections().size(), 0);
+                Input weightInput = new Input(mappings.getProjections().size());
 
+                /*
                 Multimap<Symbol, Input> outputLayout = ImmutableMultimap.<Symbol, Input>builder()
+                        .putAll(source.getLayout())
+                        .put(node.getWeightOutput(), weightInput)
+                        .build();
+                */
+
+                Map<Symbol, Input> outputLayout = ImmutableMap.<Symbol, Input>builder()
                         .putAll(source.getLayout())
                         .put(node.getWeightOutput(), weightInput)
                         .build();
